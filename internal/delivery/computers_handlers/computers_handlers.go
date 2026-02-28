@@ -8,7 +8,15 @@ import (
 	"time"
 )
 
-func AddComputerHandler(w http.ResponseWriter, r *http.Request) {
+type Handler struct {
+	ComputerService *computers_service.ComputerService
+}
+
+func NewHandler(computerService *computers_service.ComputerService) *Handler {
+	return &Handler{ComputerService: computerService}
+}
+
+func (h *Handler) AddComputerHandler(w http.ResponseWriter, r *http.Request) {
 	var newComputerDTO models.NewComputerDTO
 	if err := json.NewDecoder(r.Body).Decode(&newComputerDTO); err != nil {
 		newError := models.ErrorDTO{
@@ -26,16 +34,16 @@ func AddComputerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := computers_service.AddComputer(newComputerDTO); err != nil {
-		newError := error.Error(err)
-		http.Error(w, newError, http.StatusInternalServerError) // Статус код пока заглушка. Заменить.
+	// Service
+	if err := h.ComputerService.AddComputer(newComputerDTO.Num, newComputerDTO.Price); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
 }
 
-func DeleteComputerHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DeleteComputerHandler(w http.ResponseWriter, r *http.Request) {
 	var deleteComputerDTO models.DeleteComputerDTO
 	if err := json.NewDecoder(r.Body).Decode(&deleteComputerDTO); err != nil {
 		newError := models.ErrorDTO{
@@ -53,11 +61,7 @@ func DeleteComputerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := computers_service.DeleteComputer(deleteComputerDTO); err != nil {
-		newError := error.Error(err)
-		http.Error(w, newError, http.StatusInternalServerError) // Статус код заглушка
-		return
-	}
+	// Service
 
 	w.WriteHeader(http.StatusNoContent)
 }

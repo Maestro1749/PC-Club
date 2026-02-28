@@ -3,7 +3,8 @@ package models
 import "time"
 
 type Computer struct {
-	Number    string
+	ID        int
+	Num       string
 	Price     float64
 	IsBusy    bool
 	BusySince *time.Time
@@ -11,10 +12,15 @@ type Computer struct {
 }
 
 type NewComputerDTO struct {
-	Number string
-	Price  float64
+	Num   string  `json:"number"`
+	Price float64 `json:"price"`
 }
 
 type DeleteComputerDTO struct {
-	Number string
+	ID int `json:"id"`
+}
+
+type ComputerRepository interface {
+	Create(computer *Computer) error
+	Delete(id int) error
 }
