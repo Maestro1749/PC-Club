@@ -2,17 +2,28 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"mvp/internal/delivery/computers_handlers"
 	"mvp/internal/repository/computers_repository"
 	"mvp/internal/service/computers_service"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
+	_ "github.com/lib/pq"
 )
 
 func main() {
-	db, err := sql.Open("postgres", "")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+
+	connectString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPassword, dbHost, dbPort, dbName)
+
+	db, err := sql.Open("postgres", connectString)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,9 +44,10 @@ func main() {
 
 	router := mux.NewRouter()
 
-	router.Path("/register").Methods("CREATE").HandlerFunc(computerHandler.AddComputerHandler)
+	router.Path("/add").Methods("POST").HandlerFunc(computerHandler.AddComputerHandler)
 
-	if err := http.ListenAndServe(":9091", router); err != nil {
+	log.Println("Server running on :8080")
+	if err := http.ListenAndServe(":8080", router); err != nil {
 		log.Fatal(err)
 	}
 }

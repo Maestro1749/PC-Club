@@ -25,7 +25,7 @@ func NewUserRepository(db *sql.DB) UserRepository {
 func (r *userRepo) Create(user *models.User) error {
 	query := `
 		INSERT INTO users (username, fullname, email, phoneNumber, passwd, birthday, balance, privilage)
-		VALUES (%1, %2, %3, %4, %5, %6, %7, %8)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, registered
 	`
 
@@ -57,7 +57,7 @@ func (r *userRepo) GetByEmail(email string) (*models.User, error) {
 	query := `
 		SELECT id, username, fullname, email, phoneNumber, passwd, birthday, balance, registered, privilage
 		FROM users
-		WHERE email = %1
+		WHERE email = $1
 	`
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -91,7 +91,7 @@ func (r *userRepo) GetByPhoneNumber(phoneNumber string) (*models.User, error) {
 	query := `
 		SELECT id, username, fullname, email, phoneNumber, passwd, birthday, balance, registered, privilage
 		FROM users
-		WHERE phone_number = %1
+		WHERE phone_number = $1
 	`
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

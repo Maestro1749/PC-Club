@@ -25,7 +25,7 @@ func NewComputerRepository(db *sql.DB) ComputerRepository {
 func (r *computerRepo) CreateComputer(computer *models.Computer) error {
 	query := `
 		INSERT INTO computers (num, price)
-		VALUES %1, %2
+		VALUES ($1, $2)	
 		RETURNING id
 	`
 
@@ -47,7 +47,7 @@ func (r *computerRepo) CreateComputer(computer *models.Computer) error {
 
 func (r *computerRepo) DeleteComputer(computer *models.Computer) error {
 	query := `
-		DELETE FROM computers WHERE id = %1
+		DELETE FROM computers WHERE id = $1
 		RETURNING id
 	`
 
@@ -70,7 +70,7 @@ func (r *computerRepo) GetByNumber(number string) (*models.Computer, error) {
 	query := `
 		SELECT id, num, price, is_busy, busy_since, busy_until
 		FROM computers
-		WHERE num = %1
+		WHERE num = $1
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

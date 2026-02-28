@@ -35,8 +35,19 @@ func (h *Handler) AddComputerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Service
-	if err := h.ComputerService.AddComputer(newComputerDTO.Num, newComputerDTO.Price); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+	err := h.ComputerService.AddComputer(newComputerDTO.Num, newComputerDTO.Price)
+	if err != nil {
+		newError := models.ErrorDTO{
+			Message: err.Error(),
+			Time:    time.Now(),
+		}
+		newErrorString, err := newError.ToString()
+		if err != nil {
+			http.Error(w, "Error: Incorrect data struct.", http.StatusBadRequest)
+			return
+		}
+
+		http.Error(w, newErrorString, http.StatusBadRequest)
 		return
 	}
 

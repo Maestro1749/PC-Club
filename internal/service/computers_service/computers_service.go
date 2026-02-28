@@ -15,14 +15,6 @@ func NewComputerService(repo computers_repository.ComputerRepository) *ComputerS
 }
 
 func (s *ComputerService) AddComputer(number string, price float64) error {
-	existing, err := s.repo.GetByNumber(number)
-	if err != nil {
-		return err
-	}
-	if existing != nil {
-		return errors.New("Computer already exist.")
-	}
-
 	if price < 0 {
 		return errors.New("The price should not be negative.")
 	}
