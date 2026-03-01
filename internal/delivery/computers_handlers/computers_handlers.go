@@ -17,7 +17,7 @@ func NewHandler(computerService *computers_service.ComputerService) *Handler {
 }
 
 func (h *Handler) AddComputerHandler(w http.ResponseWriter, r *http.Request) {
-	var newComputerDTO models.NewComputerDTO
+	var newComputerDTO NewComputerDTO
 	if err := json.NewDecoder(r.Body).Decode(&newComputerDTO); err != nil {
 		newError := models.ErrorDTO{
 			Message: err.Error(),
@@ -55,7 +55,7 @@ func (h *Handler) AddComputerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteComputerHandler(w http.ResponseWriter, r *http.Request) {
-	var deleteComputerDTO models.DeleteComputerDTO
+	var deleteComputerDTO DeleteComputerDTO
 	if err := json.NewDecoder(r.Body).Decode(&deleteComputerDTO); err != nil {
 		newError := models.ErrorDTO{
 			Message: err.Error(),
@@ -73,6 +73,55 @@ func (h *Handler) DeleteComputerHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Service
+	if err := h.ComputerService.DeleteComputer(deleteComputerDTO.ID); err != nil {
+		newError := models.ErrorDTO{
+			Message: err.Error(),
+			Time:    time.Now(),
+		}
+
+		newErrorString, err := newError.ToString()
+		if err != nil {
+			http.Error(w, "Error: Incorrect data string.", http.StatusBadRequest)
+			return
+		}
+
+		http.Error(w, newErrorString, http.StatusBadRequest)
+	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) ChangeComputerPrice(w http.ResponseWriter, r *http.Request) {
+	var changePriceDTO ChangePriceDTO
+	if err := json.NewDecoder(r.Body).Decode(&changePriceDTO); err != nil {
+		newError := models.ErrorDTO{
+			Message: err.Error(),
+			Time:    time.Now(),
+		}
+
+		newErrorString, err := newError.ToString()
+		if err != nil {
+			http.Error(w, "Error: incorrect data string.", http.StatusBadRequest)
+			return
+		}
+
+		http.Error(w, newErrorString, http.StatusBadRequest)
+	}
+
+	if err := h.ComputerService.ChangePrice(changePriceDTO.Number, changePriceDTO.NewPrice); err != nil {
+		newError := models.ErrorDTO{
+			Message: err.Error(),
+			Time:    time.Now(),
+		}
+
+		newErrorString, err := newError.ToString()
+		if err != nil {
+			http.Error(w, "Error: Incorrect data string.", http.StatusBadRequest)
+			return
+		}
+
+		http.Error(w, newErrorString, http.StatusBadRequest)
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

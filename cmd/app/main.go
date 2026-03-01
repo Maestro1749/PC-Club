@@ -44,7 +44,9 @@ func main() {
 
 	router := mux.NewRouter()
 
-	router.Path("/add").Methods("POST").HandlerFunc(computerHandler.AddComputerHandler)
+	router.Path("/computer/add").Methods("POST").HandlerFunc(computerHandler.AddComputerHandler)
+	router.Path("/computer/delete").Methods("DELETE").HandlerFunc(computerHandler.DeleteComputerHandler)
+	router.Path("/computer/changeprice").Methods("PUT").HandlerFunc(computerHandler.ChangeComputerPrice)
 
 	log.Println("Server running on :8080")
 	if err := http.ListenAndServe(":8080", router); err != nil {
