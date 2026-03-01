@@ -11,6 +11,7 @@ import (
 type ComputerRepository interface {
 	CreateComputer(computer *models.Computer) error
 	DeleteComputer(computer *models.Computer) error
+	ChangePrice(num string, price float64) error
 	GetByNumber(number string) (*models.Computer, error)
 }
 
@@ -58,6 +59,30 @@ func (r *computerRepo) DeleteComputer(computer *models.Computer) error {
 		ctx,
 		query,
 		computer.ID,
+	).Scan(&computer.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *computerRepo) ChangePrice(num string, price float64) error {
+	query := `
+		UPDATE computers SET price = $1 WHERE num = $2
+		RETURNING id
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var computer models.Computer
+
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		price,
+		num,
 	).Scan(&computer.ID)
 	if err != nil {
 		return err
