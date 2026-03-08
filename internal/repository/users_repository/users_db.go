@@ -13,6 +13,7 @@ type UserRepository interface {
 	LoginUser(username, password string) (*models.User, error)
 	GetByEmail(email string) (*models.User, error)
 	GetByPhoneNumber(phoneNumber string) (*models.User, error)
+	GetHashByUsername(username string) ([]byte, error)
 }
 
 type userRepo struct {
@@ -53,7 +54,7 @@ func (r *userRepo) Create(user *models.User) error {
 	return nil
 }
 
-func (r *userRepo) LoginUser(login, password string) (*models.User, error) {
+func (r *userRepo) LoginUser(login string, passwordHash string) (*models.User, error) {
 	query := `
 		SELECT id, username, fullname, email, phone_number, birthday, balance, privilage
 		FROM users
@@ -69,7 +70,7 @@ func (r *userRepo) LoginUser(login, password string) (*models.User, error) {
 		ctx,
 		query,
 		login,
-		password,
+		passwordHash,
 	).Scan(
 		&user.ID,
 		&user.Username,
@@ -85,6 +86,25 @@ func (r *userRepo) LoginUser(login, password string) (*models.User, error) {
 	}
 
 	return &user, nil
+}
+
+func (r *userRepo) GetHashByUsername(username string) ([]byte, error) {
+	query := `
+		SELECT passwd FROM users
+		WHERE username = $1;
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var hash []byte
+
+	err := r.db.QueryRowContext(ctx, query, username).Scan(&hash)
+	if err != nil {
+		return nil, models.ErrNotFound
+	}
+
+	return hash, nil
 }
 
 func (r *userRepo) GetByEmail(email string) (*models.User, error) {

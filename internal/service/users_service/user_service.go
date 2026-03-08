@@ -32,12 +32,17 @@ func (s *UserServise) RegisterUser(newUser models.NewUserDTO) error {
 		return err
 	}
 
+	hash, err := pkg.HashPassword(newUser.Password)
+	if err != nil {
+		return err
+	}
+
 	user := models.User{
 		Username:    newUser.Username,
 		Fullname:    newUser.Fullname,
 		Email:       newUser.Email,
 		PhoneNumber: newUser.PhoneNumber,
-		Password:    newUser.Password,
+		Password:    string(hash),
 		Birthday:    newUser.Birthday,
 	}
 
@@ -57,7 +62,16 @@ func (s *UserServise) LoginUser(userInfo models.LoginUserDTO) (*models.User, err
 		return nil, err
 	}
 
-	user, err := s.repo.LoginUser(userInfo.Username, userInfo.Password)
+	hash, err := s.repo.GetHashByUsername(userInfo.Username)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := pkg.CheckPassword(userInfo.Password, hash); err != nil {
+		return nil, err
+	}
+
+	user, err := s.repo.LoginUser(userInfo.Username, string(hash))
 	if err != nil {
 		return nil, err
 	}

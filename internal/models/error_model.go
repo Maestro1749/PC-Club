@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	ErrNotFound         = errors.New("user not found")
-	ErrUsernameConflict = errors.New("username is already taken")
-	ErrInternalServer   = errors.New("internal server error")
+	ErrNotFound          = errors.New("user not found")
+	ErrUsernameConflict  = errors.New("username is already taken")
+	ErrInternalServer    = errors.New("internal server error")
+	ErrIncorrectPassword = errors.New("incorrect password")
 )
 
 type ErrorDTO struct {
