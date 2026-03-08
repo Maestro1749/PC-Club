@@ -25,8 +25,8 @@ func NewUserRepository(db *sql.DB) UserRepository {
 
 func (r *userRepo) Create(user *models.User) error {
 	query := `
-		INSERT INTO users (username, fullname, email, phone_number, passwd, birthday, balance, registered, privilage)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO users (username, fullname, email, phone_number, passwd, birthday, balance, registered)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, registered
 	`
 
@@ -44,7 +44,6 @@ func (r *userRepo) Create(user *models.User) error {
 		user.Birthday,
 		user.Balance,
 		user.Registered,
-		user.Privilege,
 	).Scan(&user.ID, &user.Registered)
 
 	if err != nil {
@@ -148,7 +147,7 @@ func (r *userRepo) GetByPhoneNumber(phoneNumber string) (*models.User, error) {
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New("User not found.") // user не найден, возможно, будет лучше возвращать сообщение.
+			return nil, errors.New("User not found.")
 		}
 		return nil, err
 	}
