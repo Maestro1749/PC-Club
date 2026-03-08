@@ -2,7 +2,14 @@ package models
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
+)
+
+var (
+	ErrNotFound         = errors.New("user not found")
+	ErrUsernameConflict = errors.New("username is already taken")
+	ErrInternalServer   = errors.New("internal server error")
 )
 
 type ErrorDTO struct {
