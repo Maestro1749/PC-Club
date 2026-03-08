@@ -2,10 +2,12 @@ package pkg
 
 import (
 	"errors"
+	"mvp/internal/models"
 	"net/mail"
 	"regexp"
 
 	"github.com/nyaruka/phonenumbers"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func ValidateUsername(username string) error {
@@ -40,8 +42,25 @@ func ValidatePhoneNumber(phoneNumber string, region string) error {
 }
 
 func ValidatePassword(password string) error {
-	if len(password) < 8 || len(password) > 100 {
-		return errors.New("Password is too short.")
+	if len(password) < 8 {
+		return models.ErrIncorrectPassword
+	}
+
+	return nil
+}
+
+func HashPassword(password string) ([]byte, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, models.ErrInternalServer
+	}
+
+	return hash, nil
+}
+
+func CheckPassword(password string, hash []byte) error {
+	if err := bcrypt.CompareHashAndPassword(hash, []byte(password)); err != nil {
+		return models.ErrIncorrectPassword
 	}
 
 	return nil
