@@ -10,6 +10,7 @@ import (
 
 type UserRepository interface {
 	Create(user *models.User) error
+	LoginUser(username, password string) (*models.User, error)
 	GetByEmail(email string) (*models.User, error)
 	GetByPhoneNumber(phoneNumber string) (*models.User, error)
 }
@@ -24,8 +25,8 @@ func NewUserRepository(db *sql.DB) UserRepository {
 
 func (r *userRepo) Create(user *models.User) error {
 	query := `
-		INSERT INTO users (username, fullname, email, phoneNumber, passwd, birthday, balance, privilage)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO users (username, fullname, email, phone_number, passwd, birthday, balance, registered, privilage)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, registered
 	`
 
@@ -53,9 +54,43 @@ func (r *userRepo) Create(user *models.User) error {
 	return nil
 }
 
+func (r *userRepo) LoginUser(login, password string) (*models.User, error) {
+	query := `
+		SELECT id, username, fullname, email, phone_number, birthday, balance, privilage
+		FROM users
+		WHERE username = $1 AND passwd = $2
+	`
+
+	user := models.User{}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		login,
+		password,
+	).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Fullname,
+		&user.Email,
+		&user.PhoneNumber,
+		&user.Birthday,
+		&user.Balance,
+		&user.Privilege,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 func (r *userRepo) GetByEmail(email string) (*models.User, error) {
 	query := `
-		SELECT id, username, fullname, email, phoneNumber, passwd, birthday, balance, registered, privilage
+		SELECT id, username, fullname, email, phone_number, passwd, birthday, balance, registered, privilage
 		FROM users
 		WHERE email = $1
 	`
@@ -89,7 +124,7 @@ func (r *userRepo) GetByEmail(email string) (*models.User, error) {
 
 func (r *userRepo) GetByPhoneNumber(phoneNumber string) (*models.User, error) {
 	query := `
-		SELECT id, username, fullname, email, phoneNumber, passwd, birthday, balance, registered, privilage
+		SELECT id, username, fullname, email, phone_number, passwd, birthday, balance, registered, privilage
 		FROM users
 		WHERE phone_number = $1
 	`
@@ -113,7 +148,7 @@ func (r *userRepo) GetByPhoneNumber(phoneNumber string) (*models.User, error) {
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil // user не найден, возможно, будет лучше возвращать сообщение.
+			return nil, errors.New("User not found.") // user не найден, возможно, будет лучше возвращать сообщение.
 		}
 		return nil, err
 	}

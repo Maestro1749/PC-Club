@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"log"
 	"mvp/internal/delivery/computers_handlers"
+	"mvp/internal/delivery/users_handlers"
 	"mvp/internal/repository/computers_repository"
+	"mvp/internal/repository/users_repository"
 	"mvp/internal/service/computers_service"
+	"mvp/internal/service/users_service"
 	"net/http"
 	"os"
 
@@ -35,18 +38,24 @@ func main() {
 	// Repositories
 	//userRepo := users_repository.NewUserRepository(db)
 	computerRepo := computers_repository.NewComputerRepository(db)
+	userRepo := users_repository.NewUserRepository(db)
 
 	// Services
 	computerService := computers_service.NewComputerService(computerRepo)
+	userService := users_service.NewService(userRepo)
 
 	// Handlers
 	computerHandler := computers_handlers.NewHandler(computerService)
+	userHandler := users_handlers.NewUserHandler(userService)
 
 	router := mux.NewRouter()
 
 	router.Path("/computer/add").Methods("POST").HandlerFunc(computerHandler.AddComputerHandler)
 	router.Path("/computer/delete").Methods("DELETE").HandlerFunc(computerHandler.DeleteComputerHandler)
 	router.Path("/computer/changeprice").Methods("PUT").HandlerFunc(computerHandler.ChangeComputerPrice)
+
+	router.Path("/user/register").Methods("POST").HandlerFunc(userHandler.RegisterUserHandler)
+	router.Path("/user/login").Methods("GET").HandlerFunc(userHandler.LoginUserHandler)
 
 	log.Println("Server running on :8080")
 	if err := http.ListenAndServe(":8080", router); err != nil {

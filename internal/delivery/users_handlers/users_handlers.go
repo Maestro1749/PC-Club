@@ -1,11 +1,20 @@
-package usershandlers
+package users_handlers
 
 import (
 	"encoding/json"
 	"mvp/internal/models"
+	"mvp/internal/service/users_service"
 	"net/http"
 	"time"
 )
+
+type UserHandler struct {
+	service *users_service.UserServise
+}
+
+func NewUserHandler(service *users_service.UserServise) *UserHandler {
+	return &UserHandler{service: service}
+}
 
 /*
 pattern: /users
@@ -20,7 +29,7 @@ failed:
   - status code: 400, 409, 500, ...
   - response body: JSON represent user
 */
-func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 	var newUserDTO models.NewUserDTO
 	if err := json.NewDecoder(r.Body).Decode(&newUserDTO); err != nil {
 		newError := models.ErrorDTO{
@@ -38,7 +47,21 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Вызов сервиса
+	if err := h.service.RegisterUser(newUserDTO); err != nil {
+		newError := models.ErrorDTO{
+			Message: err.Error(),
+			Time:    time.Now(),
+		}
+
+		newErrorString, err := newError.ToString()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		http.Error(w, newErrorString, http.StatusBadRequest)
+		return
+	}
 
 	w.WriteHeader(http.StatusCreated)
 }
@@ -56,7 +79,7 @@ failed:
   - status code: 400, 409, ...
   - response body: JSON error
 */
-func LoginUserHandler(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 	var userDTO models.LoginUserDTO
 	if err := json.NewDecoder(r.Body).Decode(&userDTO); err != nil {
 		newError := models.ErrorDTO{
@@ -74,5 +97,27 @@ func LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, err := h.service.LoginUser(userDTO)
+	if err != nil {
+		newError := models.ErrorDTO{
+			Message: err.Error(),
+			Time:    time.Now(),
+		}
+
+		newErrorString, err := newError.ToString()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		http.Error(w, newErrorString, http.StatusBadRequest)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
