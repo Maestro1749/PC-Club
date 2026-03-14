@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"errors"
 	"mvp/internal/models"
 	"net/mail"
 	"regexp"
@@ -13,7 +12,7 @@ import (
 func ValidateUsername(username string) error {
 	re := regexp.MustCompile(`^[a-zA-Z0-9_]{4,20}$`)
 	if !re.MatchString(username) {
-		return errors.New("Invalid username.")
+		return models.ErrInvalidUsername
 	}
 
 	return nil
@@ -22,7 +21,7 @@ func ValidateUsername(username string) error {
 func ValidateEmail(email string) error {
 	_, err := mail.ParseAddress(email)
 	if err != nil {
-		return errors.New("Invalid email.")
+		return models.ErrInvalidEmail
 	}
 
 	return nil
@@ -31,11 +30,11 @@ func ValidateEmail(email string) error {
 func ValidatePhoneNumber(phoneNumber string, region string) error {
 	num, err := phonenumbers.Parse(phoneNumber, region)
 	if err != nil {
-		return errors.New("Invalid phone number.")
+		return models.ErrInvalidPhoneNumber
 	}
 
 	if !phonenumbers.IsValidNumber(num) {
-		return errors.New("Invalid phone number.")
+		return models.ErrInvalidPhoneNumber
 	}
 
 	return nil
@@ -43,7 +42,7 @@ func ValidatePhoneNumber(phoneNumber string, region string) error {
 
 func ValidatePassword(password string) error {
 	if len(password) < 8 {
-		return models.ErrIncorrectPassword
+		return models.ErrWrongPassword
 	}
 
 	return nil
@@ -60,7 +59,7 @@ func HashPassword(password string) ([]byte, error) {
 
 func CheckPassword(password string, hash []byte) error {
 	if err := bcrypt.CompareHashAndPassword(hash, []byte(password)); err != nil {
-		return models.ErrIncorrectPassword
+		return models.ErrWrongPassword
 	}
 
 	return nil

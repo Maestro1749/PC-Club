@@ -11,7 +11,7 @@ type User struct {
 	Email       string
 	PhoneNumber string
 	Password    string
-	Birthday    string
+	Birthday    time.Time
 	Balance     float64
 	Registered  time.Time
 	Privilege   string

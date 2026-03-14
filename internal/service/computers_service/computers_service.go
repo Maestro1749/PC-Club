@@ -1,7 +1,6 @@
 package computers_service
 
 import (
-	"errors"
 	"mvp/internal/models"
 	"mvp/internal/repository/computers_repository"
 )
@@ -16,7 +15,7 @@ func NewComputerService(repo computers_repository.ComputerRepository) *ComputerS
 
 func (s *ComputerService) AddComputer(number string, price float64) error {
 	if price < 0 {
-		return errors.New("The price should not be negative.")
+		return models.ErrPriceConflict
 	}
 
 	computer := &models.Computer{
@@ -37,7 +36,7 @@ func (s *ComputerService) DeleteComputer(id int) error {
 
 func (s *ComputerService) ChangePrice(number string, newPrice float64) error {
 	if newPrice < 0 {
-		return errors.New("The price should not be negative.")
+		return models.ErrPriceConflict
 	}
 
 	return s.repo.ChangePrice(number, newPrice)

@@ -2,6 +2,7 @@ package computers_handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"mvp/internal/models"
 	"mvp/internal/service/computers_service"
 	"net/http"
@@ -37,17 +38,17 @@ func (h *Handler) AddComputerHandler(w http.ResponseWriter, r *http.Request) {
 	// Service
 	err := h.ComputerService.AddComputer(newComputerDTO.Num, newComputerDTO.Price)
 	if err != nil {
-		newError := models.ErrorDTO{
-			Message: err.Error(),
-			Time:    time.Now(),
-		}
-		newErrorString, err := newError.ToString()
-		if err != nil {
-			http.Error(w, "Error: Incorrect data struct.", http.StatusBadRequest)
+		if errors.Is(err, models.ErrPriceConflict) {
+			http.Error(w, models.ErrPriceConflict.Error(), http.StatusBadRequest)
 			return
 		}
 
-		http.Error(w, newErrorString, http.StatusBadRequest)
+		if errors.Is(err, models.ErrComputerNumConflict) {
+			http.Error(w, models.ErrComputerNumConflict.Error(), http.StatusConflict)
+			return
+		}
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

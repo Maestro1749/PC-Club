@@ -6,6 +6,8 @@ import (
 	"errors"
 	"mvp/internal/models"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type ComputerRepository interface {
@@ -40,7 +42,18 @@ func (r *computerRepo) CreateComputer(computer *models.Computer) error {
 		computer.Price,
 	).Scan(&computer.ID)
 	if err != nil {
-		return err
+		var pgErr *pq.Error
+
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "23505" {
+				switch pgErr.Constraint {
+				case "comuters_num_key":
+					return models.ErrComputerNumConflict
+				}
+			}
+		}
+
+		return models.ErrInternalServer
 	}
 
 	return nil
@@ -85,7 +98,7 @@ func (r *computerRepo) ChangePrice(num string, price float64) error {
 		num,
 	).Scan(&computer.ID)
 	if err != nil {
-		return err
+		return models.ErrInternalServer
 	}
 
 	return nil
@@ -113,7 +126,7 @@ func (r *computerRepo) GetByNumber(number string) (*models.Computer, error) {
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New("Computer undefined.")
+			return nil, models.ErrComputerNotFound
 		}
 		return nil, err
 	}

@@ -4,8 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 	"mvp/internal/models"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type UserRepository interface {
@@ -46,9 +49,27 @@ func (r *userRepo) Create(user *models.User) error {
 		user.Balance,
 		user.Registered,
 	).Scan(&user.ID, &user.Registered)
-
 	if err != nil {
-		return err
+		log.Printf("DB ERROR: %v\n", err)
+
+		var pgErr *pq.Error
+
+		if errors.As(err, &pgErr) {
+			log.Printf("PG ERROR: %v %v\n", pgErr.Code, pgErr.Constraint)
+
+			if pgErr.Code == "23505" {
+				switch pgErr.Constraint {
+				case "users_username_key":
+					return models.ErrUsernameConflict
+				case "users_phone_number_key":
+					return models.ErrPhoneNumberConflict
+				case "users_email_key":
+					return models.ErrEmailConflict
+				}
+			}
+		}
+
+		return models.ErrInternalServer
 	}
 
 	return nil
@@ -56,7 +77,7 @@ func (r *userRepo) Create(user *models.User) error {
 
 func (r *userRepo) LoginUser(login string, passwordHash string) (*models.User, error) {
 	query := `
-		SELECT id, username, fullname, email, phone_number, birthday, balance, privilage
+		SELECT id, username, fullname, email, phone_number, birthday, balance, registered, privilage
 		FROM users
 		WHERE username = $1 AND passwd = $2
 	`
@@ -79,10 +100,11 @@ func (r *userRepo) LoginUser(login string, passwordHash string) (*models.User, e
 		&user.PhoneNumber,
 		&user.Birthday,
 		&user.Balance,
+		&user.Registered,
 		&user.Privilege,
 	)
 	if err != nil {
-		return nil, err
+		return nil, models.ErrInternalServer // Ошибка на стороне сервера
 	}
 
 	return &user, nil
@@ -130,12 +152,11 @@ func (r *userRepo) GetByEmail(email string) (*models.User, error) {
 		&user.Registered,
 		&user.Privilege,
 	)
-
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New("User undefined.")
+			return nil, models.ErrNotFound
 		}
-		return nil, err
+		return nil, models.ErrInternalServer
 	}
 
 	return &user, nil
@@ -167,9 +188,9 @@ func (r *userRepo) GetByPhoneNumber(phoneNumber string) (*models.User, error) {
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New("User not found.")
+			return nil, models.ErrNotFound
 		}
-		return nil, err
+		return nil, models.ErrInternalServer
 	}
 
 	return &user, nil
