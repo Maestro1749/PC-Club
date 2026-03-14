@@ -2,6 +2,7 @@ package users_handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"mvp/internal/models"
 	"mvp/internal/service/users_service"
 	"net/http"
@@ -16,19 +17,6 @@ func NewUserHandler(service *users_service.UserServise) *UserHandler {
 	return &UserHandler{service: service}
 }
 
-/*
-pattern: /users
-method: CREATE
-info: JSON in HTTP request body
-
-succeed:
-  - status code: 201 Created
-  - response body: JSON represent created user
-
-failed:
-  - status code: 400, 409, 500, ...
-  - response body: JSON represent user
-*/
 func (h *UserHandler) RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 	var newUserDTO models.NewUserDTO
 	if err := json.NewDecoder(r.Body).Decode(&newUserDTO); err != nil {
@@ -39,7 +27,7 @@ func (h *UserHandler) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 
 		newErrorString, err := newError.ToString()
 		if err != nil {
-			http.Error(w, "Error: Incorrect data struct", http.StatusBadRequest)
+			http.Error(w, "Error: failed to formulate an error.", http.StatusInternalServerError)
 			return
 		}
 
@@ -55,30 +43,22 @@ func (h *UserHandler) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 
 		newErrorString, err := newError.ToString()
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, "Error: failed to fotmulate an error.", http.StatusBadRequest)
 			return
 		}
 
-		http.Error(w, newErrorString, http.StatusBadRequest)
+		if errors.Is(err, models.ErrInternalServer) {
+			http.Error(w, newErrorString, http.StatusInternalServerError)
+			return
+		}
+
+		http.Error(w, newErrorString, http.StatusConflict)
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
 }
 
-/*
-pattern: /users
-method: GET
-info: JSON in HTTP request body
-
-succeed:
-  - status code: 200 OK
-  - responce body: JSON represent user
-
-failed:
-  - status code: 400, 409, ...
-  - response body: JSON error
-*/
 func (h *UserHandler) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 	var userDTO models.LoginUserDTO
 	if err := json.NewDecoder(r.Body).Decode(&userDTO); err != nil {
@@ -110,7 +90,17 @@ func (h *UserHandler) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Error(w, newErrorString, http.StatusBadRequest)
+		if errors.Is(err, models.ErrNotFound) {
+			http.Error(w, newErrorString, http.StatusNotFound)
+			return
+		}
+
+		if errors.Is(err, models.ErrWrongPassword) {
+			http.Error(w, newErrorString, http.StatusUnauthorized)
+			return
+		}
+
+		http.Error(w, newErrorString, http.StatusUnauthorized)
 		return
 	}
 
