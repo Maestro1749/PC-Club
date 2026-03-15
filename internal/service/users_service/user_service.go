@@ -5,14 +5,20 @@ import (
 	"mvp/internal/repository/users_repository"
 	"mvp/pkg"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type UserServise struct {
-	repo users_repository.UserRepository
+	repo   users_repository.UserRepository
+	logger *zap.Logger
 }
 
-func NewService(repo users_repository.UserRepository) *UserServise {
-	return &UserServise{repo: repo}
+func NewService(repo users_repository.UserRepository, logger *zap.Logger) *UserServise {
+	return &UserServise{
+		repo:   repo,
+		logger: logger,
+	}
 }
 
 func (s *UserServise) RegisterUser(newUser models.NewUserDTO) error {

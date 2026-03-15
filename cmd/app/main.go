@@ -3,9 +3,9 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"mvp/internal/delivery/computers_handlers"
 	"mvp/internal/delivery/users_handlers"
+	"mvp/internal/logger"
 	"mvp/internal/repository/computers_repository"
 	"mvp/internal/repository/users_repository"
 	"mvp/internal/service/computers_service"
@@ -15,6 +15,7 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -24,29 +25,42 @@ func main() {
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")
 
+	logger, err := logger.NewLogger()
+	if err != nil {
+		panic(err)
+	}
+	defer logger.Sync()
+	logger.Info("Logger initialized successfully")
+
 	connectString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPassword, dbHost, dbPort, dbName)
 
 	db, err := sql.Open("postgres", connectString)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("Failed to open database connection", zap.Error(err))
+		panic(err)
 	}
 
 	if err := db.Ping(); err != nil {
-		log.Fatal(err)
+		logger.Error("Failed to connect to the database", zap.Error(err))
+		panic(err)
 	}
+	logger.Info("Database connection established successfully")
 
 	// Repositories
 	//userRepo := users_repository.NewUserRepository(db)
-	computerRepo := computers_repository.NewComputerRepository(db)
-	userRepo := users_repository.NewUserRepository(db)
+	computerRepo := computers_repository.NewComputerRepository(db, logger)
+	userRepo := users_repository.NewUserRepository(db, logger)
+	logger.Info("Repositories initialized successfully")
 
 	// Services
-	computerService := computers_service.NewComputerService(computerRepo)
-	userService := users_service.NewService(userRepo)
+	computerService := computers_service.NewComputerService(computerRepo, logger)
+	userService := users_service.NewService(userRepo, logger)
+	logger.Info("Services initialized successfully")
 
 	// Handlers
-	computerHandler := computers_handlers.NewHandler(computerService)
-	userHandler := users_handlers.NewUserHandler(userService)
+	computerHandler := computers_handlers.NewHandler(computerService, logger)
+	userHandler := users_handlers.NewUserHandler(userService, logger)
+	logger.Info("Handlers initialized successfully")
 
 	router := mux.NewRouter()
 
@@ -57,8 +71,9 @@ func main() {
 	router.Path("/user/register").Methods("POST").HandlerFunc(userHandler.RegisterUserHandler)
 	router.Path("/user/login").Methods("GET").HandlerFunc(userHandler.LoginUserHandler)
 
-	log.Println("Server running on :8080")
+	logger.Info("Server running on :8080")
 	if err := http.ListenAndServe(":8080", router); err != nil {
-		log.Fatal(err)
+		logger.Error("Failed to start server", zap.Error(err))
+		panic(err)
 	}
 }

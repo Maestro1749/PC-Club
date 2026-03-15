@@ -9,6 +9,8 @@ require (
 
 require (
 	github.com/nyaruka/phonenumbers v1.6.11 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
+	go.uber.org/zap v1.27.1 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/text v0.34.0 // indirect

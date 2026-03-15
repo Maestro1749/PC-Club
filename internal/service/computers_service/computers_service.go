@@ -3,18 +3,25 @@ package computers_service
 import (
 	"mvp/internal/models"
 	"mvp/internal/repository/computers_repository"
+
+	"go.uber.org/zap"
 )
 
 type ComputerService struct {
-	repo computers_repository.ComputerRepository
+	repo   computers_repository.ComputerRepository
+	logger *zap.Logger
 }
 
-func NewComputerService(repo computers_repository.ComputerRepository) *ComputerService {
-	return &ComputerService{repo: repo}
+func NewComputerService(repo computers_repository.ComputerRepository, logger *zap.Logger) *ComputerService {
+	return &ComputerService{
+		repo:   repo,
+		logger: logger,
+	}
 }
 
 func (s *ComputerService) AddComputer(number string, price float64) error {
 	if price < 0 {
+		s.logger.Error("Invalid price for computer", zap.Float64("price", price))
 		return models.ErrPriceConflict
 	}
 
@@ -36,6 +43,7 @@ func (s *ComputerService) DeleteComputer(id int) error {
 
 func (s *ComputerService) ChangePrice(number string, newPrice float64) error {
 	if newPrice < 0 {
+		s.logger.Error("Invalid new price for computer", zap.Float64("new price", newPrice))
 		return models.ErrPriceConflict
 	}
 

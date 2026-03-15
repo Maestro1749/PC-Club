@@ -7,14 +7,20 @@ import (
 	"mvp/internal/service/computers_service"
 	"net/http"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type Handler struct {
 	ComputerService *computers_service.ComputerService
+	logger          *zap.Logger
 }
 
-func NewHandler(computerService *computers_service.ComputerService) *Handler {
-	return &Handler{ComputerService: computerService}
+func NewHandler(computerService *computers_service.ComputerService, logger *zap.Logger) *Handler {
+	return &Handler{
+		ComputerService: computerService,
+		logger:          logger,
+	}
 }
 
 func (h *Handler) AddComputerHandler(w http.ResponseWriter, r *http.Request) {
@@ -27,6 +33,7 @@ func (h *Handler) AddComputerHandler(w http.ResponseWriter, r *http.Request) {
 
 		newErrorString, err := newError.ToString()
 		if err != nil {
+			h.logger.Error("Failed to convert error to string", zap.Error(err))
 			http.Error(w, "Error: Incorrect data struct.", http.StatusBadRequest)
 			return
 		}
@@ -65,6 +72,7 @@ func (h *Handler) DeleteComputerHandler(w http.ResponseWriter, r *http.Request) 
 
 		newErrorString, err := newError.ToString()
 		if err != nil {
+			h.logger.Error("Failed to convert error to string", zap.Error(err))
 			http.Error(w, "Error: Incorrect data string.", http.StatusBadRequest)
 			return
 		}
@@ -82,6 +90,7 @@ func (h *Handler) DeleteComputerHandler(w http.ResponseWriter, r *http.Request) 
 
 		newErrorString, err := newError.ToString()
 		if err != nil {
+			h.logger.Error("Failed to convert error to string", zap.Error(err))
 			http.Error(w, "Error: Incorrect data string.", http.StatusBadRequest)
 			return
 		}
@@ -102,6 +111,7 @@ func (h *Handler) ChangeComputerPrice(w http.ResponseWriter, r *http.Request) {
 
 		newErrorString, err := newError.ToString()
 		if err != nil {
+			h.logger.Error("Failed to convert error to string", zap.Error(err))
 			http.Error(w, "Error: incorrect data string.", http.StatusBadRequest)
 			return
 		}
@@ -117,6 +127,7 @@ func (h *Handler) ChangeComputerPrice(w http.ResponseWriter, r *http.Request) {
 
 		newErrorString, err := newError.ToString()
 		if err != nil {
+			h.logger.Error("Failed to convert error to string", zap.Error(err))
 			http.Error(w, "Error: Incorrect data string.", http.StatusBadRequest)
 			return
 		}

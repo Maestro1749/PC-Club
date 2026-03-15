@@ -7,14 +7,20 @@ import (
 	"mvp/internal/service/users_service"
 	"net/http"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type UserHandler struct {
 	service *users_service.UserServise
+	logger  *zap.Logger
 }
 
-func NewUserHandler(service *users_service.UserServise) *UserHandler {
-	return &UserHandler{service: service}
+func NewUserHandler(service *users_service.UserServise, logger *zap.Logger) *UserHandler {
+	return &UserHandler{
+		service: service,
+		logger:  logger,
+	}
 }
 
 func (h *UserHandler) RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
