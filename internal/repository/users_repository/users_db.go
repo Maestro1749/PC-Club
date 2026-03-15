@@ -4,11 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
 	"mvp/internal/models"
 	"time"
 
 	"github.com/lib/pq"
+	"go.uber.org/zap"
 )
 
 type UserRepository interface {
@@ -20,11 +20,15 @@ type UserRepository interface {
 }
 
 type userRepo struct {
-	db *sql.DB
+	db     *sql.DB
+	logger *zap.Logger
 }
 
-func NewUserRepository(db *sql.DB) UserRepository {
-	return &userRepo{db: db}
+func NewUserRepository(db *sql.DB, logger *zap.Logger) UserRepository {
+	return &userRepo{
+		db:     db,
+		logger: logger,
+	}
 }
 
 func (r *userRepo) Create(user *models.User) error {
@@ -50,12 +54,10 @@ func (r *userRepo) Create(user *models.User) error {
 		user.Registered,
 	).Scan(&user.ID, &user.Registered)
 	if err != nil {
-		log.Printf("DB ERROR: %v\n", err)
-
 		var pgErr *pq.Error
 
 		if errors.As(err, &pgErr) {
-			log.Printf("PG ERROR: %v %v\n", pgErr.Code, pgErr.Constraint)
+			r.logger.Error("Failed to create user", zap.Error(err))
 
 			if pgErr.Code == "23505" {
 				switch pgErr.Constraint {
@@ -69,9 +71,11 @@ func (r *userRepo) Create(user *models.User) error {
 			}
 		}
 
+		r.logger.Error("Failed to create user", zap.Error(err))
 		return models.ErrInternalServer
 	}
 
+	r.logger.Info("User succesfully registered", zap.String("username", user.Username))
 	return nil
 }
 
@@ -104,9 +108,14 @@ func (r *userRepo) LoginUser(login string, passwordHash string) (*models.User, e
 		&user.Privilege,
 	)
 	if err != nil {
-		return nil, models.ErrInternalServer // Ошибка на стороне сервера
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, models.ErrNotFound
+		}
+		r.logger.Error("Failed to execute login query", zap.Error(err))
+		return nil, models.ErrInternalServer
 	}
 
+	r.logger.Info("User successfully login", zap.String("username", user.Username))
 	return &user, nil
 }
 
@@ -123,7 +132,11 @@ func (r *userRepo) GetHashByUsername(username string) ([]byte, error) {
 
 	err := r.db.QueryRowContext(ctx, query, username).Scan(&hash)
 	if err != nil {
-		return nil, models.ErrNotFound
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, models.ErrNotFound
+		}
+		r.logger.Error("Failed to execute get hash query", zap.Error(err))
+		return nil, models.ErrInternalServer
 	}
 
 	return hash, nil
@@ -156,6 +169,7 @@ func (r *userRepo) GetByEmail(email string) (*models.User, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, models.ErrNotFound
 		}
+		r.logger.Error("Failed to execute get by email query", zap.Error(err))
 		return nil, models.ErrInternalServer
 	}
 
@@ -190,6 +204,7 @@ func (r *userRepo) GetByPhoneNumber(phoneNumber string) (*models.User, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, models.ErrNotFound
 		}
+		r.logger.Error("Failed to execute get by phone number query", zap.Error(err))
 		return nil, models.ErrInternalServer
 	}
 

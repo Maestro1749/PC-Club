@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"go.uber.org/zap"
 )
 
 type ComputerRepository interface {
@@ -18,11 +19,15 @@ type ComputerRepository interface {
 }
 
 type computerRepo struct {
-	db *sql.DB
+	db     *sql.DB
+	logger *zap.Logger
 }
 
-func NewComputerRepository(db *sql.DB) ComputerRepository {
-	return &computerRepo{db: db}
+func NewComputerRepository(db *sql.DB, logger *zap.Logger) ComputerRepository {
+	return &computerRepo{
+		db:     db,
+		logger: logger,
+	}
 }
 
 func (r *computerRepo) CreateComputer(computer *models.Computer) error {
@@ -42,20 +47,24 @@ func (r *computerRepo) CreateComputer(computer *models.Computer) error {
 		computer.Price,
 	).Scan(&computer.ID)
 	if err != nil {
+
 		var pgErr *pq.Error
 
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == "23505" {
 				switch pgErr.Constraint {
-				case "comuters_num_key":
+				case "computers_num_key":
+					r.logger.Error("Computer number already exists", zap.String("computer number", computer.Num))
 					return models.ErrComputerNumConflict
 				}
 			}
 		}
 
+		r.logger.Error("Failed to create computer", zap.Error(err))
 		return models.ErrInternalServer
 	}
 
+	r.logger.Info("Computer registered", zap.String("computer number", computer.Num))
 	return nil
 }
 
@@ -74,7 +83,8 @@ func (r *computerRepo) DeleteComputer(computer *models.Computer) error {
 		computer.ID,
 	).Scan(&computer.ID)
 	if err != nil {
-		return err
+		r.logger.Error("Failed to delete computer", zap.Error(err))
+		return models.ErrInternalServer
 	}
 
 	return nil
@@ -98,6 +108,12 @@ func (r *computerRepo) ChangePrice(num string, price float64) error {
 		num,
 	).Scan(&computer.ID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.ErrComputerNotFound
+		}
+
+		r.logger.Error("Failed to change computer price", zap.Error(err))
+
 		return models.ErrInternalServer
 	}
 
@@ -128,7 +144,9 @@ func (r *computerRepo) GetByNumber(number string) (*models.Computer, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, models.ErrComputerNotFound
 		}
-		return nil, err
+
+		r.logger.Error("Failed to get computer by number", zap.Error(err))
+		return nil, models.ErrInternalServer
 	}
 
 	return &computer, nil
