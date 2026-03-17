@@ -20,3 +20,5 @@ REST API сервис для управления пользовтелями
 
 Запуск:
 - docker compose up
+
+Work in progress...
