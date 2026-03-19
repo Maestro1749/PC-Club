@@ -3,11 +3,14 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"mvp/internal/delivery/booking_handlers"
 	"mvp/internal/delivery/computers_handlers"
 	"mvp/internal/delivery/users_handlers"
 	"mvp/internal/logger"
+	"mvp/internal/repository/booking_repository"
 	"mvp/internal/repository/computers_repository"
 	"mvp/internal/repository/users_repository"
+	"mvp/internal/service/booking_service"
 	"mvp/internal/service/computers_service"
 	"mvp/internal/service/users_service"
 	"net/http"
@@ -47,19 +50,21 @@ func main() {
 	logger.Info("Database connection established successfully")
 
 	// Repositories
-	//userRepo := users_repository.NewUserRepository(db)
 	computerRepo := computers_repository.NewComputerRepository(db, logger)
 	userRepo := users_repository.NewUserRepository(db, logger)
+	bookingRepo := booking_repository.NewBookingReposiry(db, logger)
 	logger.Info("Repositories initialized successfully")
 
 	// Services
 	computerService := computers_service.NewComputerService(computerRepo, logger)
 	userService := users_service.NewService(userRepo, logger)
+	bookingService := booking_service.NewBookingService(bookingRepo, logger)
 	logger.Info("Services initialized successfully")
 
 	// Handlers
 	computerHandler := computers_handlers.NewHandler(computerService, logger)
 	userHandler := users_handlers.NewUserHandler(userService, logger)
+	bookingHandler := booking_handlers.NewBookingHandler(bookingService, logger)
 	logger.Info("Handlers initialized successfully")
 
 	router := mux.NewRouter()
@@ -70,6 +75,8 @@ func main() {
 
 	router.Path("/user/register").Methods("POST").HandlerFunc(userHandler.RegisterUserHandler)
 	router.Path("/user/login").Methods("GET").HandlerFunc(userHandler.LoginUserHandler)
+
+	router.Path("/booking").Methods("POST").HandlerFunc(bookingHandler.BookingComputerHandler)
 
 	logger.Info("Server running on :8080")
 	if err := http.ListenAndServe(":8080", router); err != nil {
