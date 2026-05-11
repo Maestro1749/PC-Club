@@ -7,7 +7,10 @@ require (
 	github.com/lib/pq v1.11.2
 )
 
+require github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
+
 require (
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/nyaruka/phonenumbers v1.6.11 // indirect
 	go.uber.org/multierr v1.10.0 // indirect

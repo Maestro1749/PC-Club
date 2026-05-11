@@ -42,23 +42,12 @@ func (h *UserHandler) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := h.service.RegisterUser(newUserDTO); err != nil {
-		newError := models.ErrorDTO{
-			Message: err.Error(),
-			Time:    time.Now(),
+		switch {
+		case errors.Is(err, models.ErrInternalServer):
+			writeError(w, err, http.StatusInternalServerError)
+		default:
+			writeError(w, err, http.StatusConflict)
 		}
-
-		newErrorString, err := newError.ToString()
-		if err != nil {
-			http.Error(w, "Error: failed to fotmulate an error.", http.StatusBadRequest)
-			return
-		}
-
-		if errors.Is(err, models.ErrInternalServer) {
-			http.Error(w, newErrorString, http.StatusInternalServerError)
-			return
-		}
-
-		http.Error(w, newErrorString, http.StatusConflict)
 		return
 	}
 
@@ -85,28 +74,14 @@ func (h *UserHandler) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.service.LoginUser(userDTO)
 	if err != nil {
-		newError := models.ErrorDTO{
-			Message: err.Error(),
-			Time:    time.Now(),
+		switch {
+		case errors.Is(err, models.ErrNotFound):
+			writeError(w, err, http.StatusNotFound)
+		case errors.Is(err, models.ErrWrongPassword):
+			writeError(w, err, http.StatusUnauthorized)
+		default:
+			writeError(w, err, http.StatusInternalServerError)
 		}
-
-		newErrorString, err := newError.ToString()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		if errors.Is(err, models.ErrNotFound) {
-			http.Error(w, newErrorString, http.StatusNotFound)
-			return
-		}
-
-		if errors.Is(err, models.ErrWrongPassword) {
-			http.Error(w, newErrorString, http.StatusUnauthorized)
-			return
-		}
-
-		http.Error(w, newErrorString, http.StatusUnauthorized)
 		return
 	}
 
@@ -116,4 +91,15 @@ func (h *UserHandler) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func writeError(w http.ResponseWriter, err error, status int) {
+	newError := models.ErrorDTO{
+		Message: err.Error(),
+		Time:    time.Now(),
+	}
+
+	str, _ := newError.ToString()
+
+	http.Error(w, str, status)
 }

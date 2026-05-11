@@ -6,6 +6,7 @@ import (
 	"mvp/internal/models"
 	"mvp/internal/service/booking_service"
 	"net/http"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -30,29 +31,32 @@ func (h *BookingHandler) BookingComputerHandler(w http.ResponseWriter, r *http.R
 	if err := h.service.BookingComputer(BookingDTO.ComputerNumber, BookingDTO.UserID, BookingDTO.StartTime, BookingDTO.DurationHours); err != nil {
 		h.logger.Error("failed to book computer", zap.Error(err))
 
-		if errors.Is(err, models.ErrComputerNotFound) {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
+		switch {
+		case errors.Is(err, models.ErrComputerNotFound):
+			writeError(w, err, http.StatusNotFound)
+		case errors.Is(err, models.ErrComputerBusy):
+			writeError(w, err, http.StatusConflict)
+		case errors.Is(err, models.ErrTimeFormat):
+			writeError(w, err, http.StatusBadRequest)
+		case errors.Is(err, models.ErrInvalidDuration):
+			writeError(w, err, http.StatusBadRequest)
+		default:
+			writeError(w, err, http.StatusInternalServerError)
 		}
 
-		if errors.Is(err, models.ErrComputerBusy) {
-			http.Error(w, err.Error(), http.StatusConflict)
-			return
-		}
-
-		if errors.Is(err, models.ErrTimeFormat) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		if errors.Is(err, models.ErrInvalidDuration) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func writeError(w http.ResponseWriter, err error, status int) {
+	newError := models.ErrorDTO{
+		Message: err.Error(),
+		Time:    time.Now(),
+	}
+
+	str, _ := newError.ToString()
+
+	http.Error(w, str, status)
 }
