@@ -80,6 +80,7 @@ func (r *bookingRepo) Booking(userID int, sum float64, computerID int, timeStart
 		return models.ErrInternalServer
 	}
 
+	r.logger.Info("user succeed book computer", zap.Int("user id:", userID), zap.Int("computer id:", computerID), zap.Time("time start:", timeStart))
 	return nil
 }
 
